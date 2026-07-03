@@ -207,14 +207,26 @@ main {
 }
 .card-actions, .today-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.9rem; }
 
-.plan-drills { list-style: none; margin: 0.6rem 0 1rem; padding: 0; }
-.plan-drills li {
-  padding: 0.5rem 0.75rem; margin-bottom: 0.35rem;
+.hint { font-size: 0.78rem; margin: 0.2rem 0 0.6rem; }
+.plan-drills { list-style: none; margin: 0.3rem 0 1rem; padding: 0; }
+.plan-drill {
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 12px;
-  font-size: 0.95rem;
+  margin-bottom: 0.35rem;
+  overflow: hidden;
 }
+.plan-drill-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+  width: 100%; min-height: 44px;
+  padding: 0.55rem 0.8rem;
+  border: none; background: none;
+  color: var(--ink); font-family: var(--font);
+  font-size: 0.95rem; font-weight: 600; text-align: left;
+  cursor: pointer;
+}
+.plan-drill-head .chevron { color: var(--lime); font-size: 1.05rem; }
+.plan-drill .drill-body { margin: 0 0.8rem 0.7rem; padding-top: 0.6rem; }
 
 /* ---- Recommendation card ---- */
 .card--rec { border-color: var(--lime); box-shadow: 0 10px 30px rgba(212, 255, 38, 0.12); }
@@ -274,7 +286,7 @@ main {
   font-size: 1rem; cursor: pointer;
 }
 .reorder button:disabled { opacity: 0.3; }
-.info-btn { font-weight: 800; font-style: italic; font-family: Georgia, 'Times New Roman', serif; }
+.info-btn { font-size: 1.15rem; line-height: 1; color: var(--lime); border-color: rgba(212, 255, 38, 0.4); }
 .info-btn.is-on { background: var(--lime); border-color: var(--lime); color: var(--bg); }
 .today-info {
   margin-top: 0.6rem;

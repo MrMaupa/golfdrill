@@ -92,6 +92,7 @@ const state = {
   filters: load(LS.filters, { club: '', skill: '', fix: '', equipment: '' }),
   expanded: load(LS.expanded, {}),
   todayInfo: {}, // which Today drills have their details expanded (in-memory)
+  planInfo: {},  // which plan drills are expanded, keyed `${planId}|${drillId}`
 };
 
 // Back-fill fields added in later versions so older localStorage still works.
@@ -189,6 +190,18 @@ function chip(label, active, dataAttrs) {
   return `<button type="button" class="chip${active ? ' chip--on' : ''}" ${attrs}>${esc(label)}</button>`;
 }
 
+// Shared drill "mini-lesson" body, used in Plans, Library, and Today.
+function drillDetailsHtml(d) {
+  return `
+    <p>${esc(d.short || '')}</p>
+    <p><strong>How:</strong> ${esc(d.how || '')}</p>
+    <p><strong>Focus:</strong> ${esc(d.focus || '')}</p>
+    ${d.success ? `<p class="ok"><strong>Success check:</strong> ${esc(d.success)}</p>` : ''}
+    ${d.mistake ? `<p class="warn"><strong>Common mistake:</strong> ${esc(d.mistake)}</p>` : ''}
+    ${d.why ? `<p><strong>Why:</strong> ${esc(d.why)}</p>` : ''}
+    <p class="muted">${esc(d.balls || '')}${(d.equipment || []).length ? ` · ${esc((d.equipment || []).join(', '))}` : ''}</p>`;
+}
+
 // ---- Tab: Ready plans -----------------------------------------------------
 
 // A "based on your recent misses, try this plan" card, or '' if nothing to say.
@@ -222,7 +235,18 @@ function renderPlans() {
   el.innerHTML = head + recommendCard() + state.plans
     .map((p) => {
       const drills = drillsByIds(state.drills, p.drills);
-      const names = drills.map((d) => `<li>${esc(d.name)}</li>`).join('');
+      const rows = drills.map((d) => {
+        const key = `${p.id}|${d.id}`;
+        const open = !!state.planInfo[key];
+        return `
+          <li class="plan-drill">
+            <button type="button" class="plan-drill-head" data-plan-info="${esc(key)}">
+              <span>${esc(d.name)}</span>
+              <span class="chevron">${open ? '▾' : 'ⓘ'}</span>
+            </button>
+            ${open ? `<div class="drill-body">${drillDetailsHtml(d)}</div>` : ''}
+          </li>`;
+      }).join('');
       return `
         <article class="card">
           <div class="card-head">
@@ -230,7 +254,8 @@ function renderPlans() {
             ${p.estimate ? `<span class="card-tag">${esc(p.estimate)}</span>` : ''}
           </div>
           <p>${esc(p.purpose || '')}</p>
-          <ol class="plan-drills">${names}</ol>
+          <p class="muted hint">Tap a drill for how-to, success check and common mistake.</p>
+          <ul class="plan-drills">${rows}</ul>
           <button type="button" class="btn btn--primary btn--block" data-load-plan="${esc(p.id)}">
             Load into Today
           </button>
@@ -275,15 +300,7 @@ function drillCard(d) {
       </button>
       <p class="muted">${esc(d.short || '')}</p>
       <div class="tags">${tags}</div>
-      ${open ? `
-        <div class="drill-body">
-          <p><strong>How:</strong> ${esc(d.how || '')}</p>
-          <p><strong>Focus:</strong> ${esc(d.focus || '')}</p>
-          ${d.success ? `<p class="ok"><strong>Success check:</strong> ${esc(d.success)}</p>` : ''}
-          ${d.mistake ? `<p class="warn"><strong>Common mistake:</strong> ${esc(d.mistake)}</p>` : ''}
-          <p><strong>Why:</strong> ${esc(d.why || '')}</p>
-          <p class="muted">${esc(d.balls || '')} · ${esc((d.equipment || []).join(', '))}</p>
-        </div>` : ''}
+      ${open ? `<div class="drill-body">${drillDetailsHtml(d)}</div>` : ''}
       <button type="button" class="btn ${inPlan ? 'btn--muted' : 'btn--primary'} btn--block"
               data-plan-toggle="${esc(d.id)}">
         ${inPlan ? 'Remove from Today' : '+ Add to Today'}
@@ -328,22 +345,13 @@ function renderToday() {
               <span>${esc(d.name)}</span>
             </label>
             <span class="reorder">
-              <button type="button" class="info-btn${info ? ' is-on' : ''}" data-today-info="${esc(d.id)}" aria-label="How to do this drill">i</button>
+              <button type="button" class="info-btn${info ? ' is-on' : ''}" data-today-info="${esc(d.id)}" aria-label="How to do this drill">ⓘ</button>
               <button type="button" data-move-up="${esc(d.id)}" ${i === 0 ? 'disabled' : ''} aria-label="Move up">↑</button>
               <button type="button" data-move-down="${esc(d.id)}" ${i === drills.length - 1 ? 'disabled' : ''} aria-label="Move down">↓</button>
               <button type="button" data-remove="${esc(d.id)}" aria-label="Remove">✕</button>
             </span>
           </div>
-          ${info ? `
-            <div class="today-info">
-              <p>${esc(d.short || '')}</p>
-              <p><strong>How:</strong> ${esc(d.how || '')}</p>
-              <p><strong>Focus:</strong> ${esc(d.focus || '')}</p>
-              ${d.success ? `<p class="ok"><strong>Success check:</strong> ${esc(d.success)}</p>` : ''}
-              ${d.mistake ? `<p class="warn"><strong>Common mistake:</strong> ${esc(d.mistake)}</p>` : ''}
-              ${d.why ? `<p><strong>Why:</strong> ${esc(d.why)}</p>` : ''}
-              <p class="muted">${esc(d.balls || '')}${(d.equipment || []).length ? ` · ${esc((d.equipment || []).join(', '))}` : ''}</p>
-            </div>` : ''}
+          ${info ? `<div class="today-info">${drillDetailsHtml(d)}</div>` : ''}
           ${clubOptions.length ? `<div class="club-row">${clubChips}</div>` : ''}
         </li>`;
       }).join('')
@@ -667,8 +675,8 @@ function bindEvents() {
   // Click delegation for everything rendered dynamically.
   $('#app-view').addEventListener('click', (e) => {
     const t = e.target.closest('[data-load-plan],[data-plan-toggle],[data-toggle],' +
-      '[data-today-info],[data-move-up],[data-move-down],[data-remove],.chip,#save-session,' +
-      '#copy-summary,#clear-today,#copy-all,[data-copy-session],[data-delete-session]');
+      '[data-today-info],[data-plan-info],[data-move-up],[data-move-down],[data-remove],.chip,' +
+      '#save-session,#copy-summary,#clear-today,#copy-all,[data-copy-session],[data-delete-session]');
     if (!t) return;
 
     if (t.dataset.loadPlan) return loadPlan(t.dataset.loadPlan);
@@ -677,6 +685,10 @@ function bindEvents() {
     if (t.dataset.todayInfo) {
       state.todayInfo[t.dataset.todayInfo] = !state.todayInfo[t.dataset.todayInfo];
       return renderToday();
+    }
+    if (t.dataset.planInfo) {
+      state.planInfo[t.dataset.planInfo] = !state.planInfo[t.dataset.planInfo];
+      return renderPlans();
     }
     if (t.dataset.moveUp) return moveDrill(t.dataset.moveUp, -1);
     if (t.dataset.moveDown) return moveDrill(t.dataset.moveDown, 1);
