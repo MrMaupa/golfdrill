@@ -1,0 +1,8 @@
+# Golfdrill is buildless — none of this belongs in the repo.
+node_modules/
+package.json
+package-lock.json
+postcss.config.js
+tailwind.config.js
+.DS_Store
+npm-debug.log*
