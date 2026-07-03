@@ -128,6 +128,14 @@ textarea {
 }
 input:focus, textarea:focus { border-color: var(--lime); }
 textarea { resize: vertical; min-height: 90px; }
+input[type="date"] {
+  text-align: left;
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+}
+/* iOS renders the date value in an inner container; keep it left-aligned. */
+input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
 input[type="range"] {
   width: 100%; height: var(--tap);
   accent-color: var(--lime);
@@ -266,6 +274,18 @@ main {
   font-size: 1rem; cursor: pointer;
 }
 .reorder button:disabled { opacity: 0.3; }
+.info-btn { font-weight: 800; font-style: italic; font-family: Georgia, 'Times New Roman', serif; }
+.info-btn.is-on { background: var(--lime); border-color: var(--lime); color: var(--bg); }
+.today-info {
+  margin-top: 0.6rem;
+  padding: 0.8rem 0.9rem;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+}
+.today-info p { margin: 0.35rem 0; font-size: 0.9rem; line-height: 1.5; }
+.drill-body .ok strong, .today-info .ok strong { color: var(--lime); }
+.drill-body .warn strong, .today-info .warn strong { color: #ffcf5c; }
 .club-row { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.6rem; }
 .club-row .chip { min-height: 32px; padding: 0.2rem 0.6rem; font-size: 0.78rem; }
 

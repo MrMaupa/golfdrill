@@ -3,7 +3,7 @@
 // Firestore/Auth network traffic is NOT cached here — the Firestore SDK's own
 // IndexedDB cache handles offline data. Bump CACHE on every deploy to refresh.
 
-const CACHE = 'golfdrill-v4';
+const CACHE = 'golfdrill-v6';
 
 // Same-origin app shell. Relative paths so it works under a GitHub Pages subpath.
 const SHELL = [

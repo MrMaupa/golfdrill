@@ -91,6 +91,7 @@ const state = {
   }),
   filters: load(LS.filters, { club: '', skill: '', fix: '', equipment: '' }),
   expanded: load(LS.expanded, {}),
+  todayInfo: {}, // which Today drills have their details expanded (in-memory)
 };
 
 // Back-fill fields added in later versions so older localStorage still works.
@@ -276,9 +277,11 @@ function drillCard(d) {
       <div class="tags">${tags}</div>
       ${open ? `
         <div class="drill-body">
-          <p><strong>Why:</strong> ${esc(d.why || '')}</p>
           <p><strong>How:</strong> ${esc(d.how || '')}</p>
           <p><strong>Focus:</strong> ${esc(d.focus || '')}</p>
+          ${d.success ? `<p class="ok"><strong>Success check:</strong> ${esc(d.success)}</p>` : ''}
+          ${d.mistake ? `<p class="warn"><strong>Common mistake:</strong> ${esc(d.mistake)}</p>` : ''}
+          <p><strong>Why:</strong> ${esc(d.why || '')}</p>
           <p class="muted">${esc(d.balls || '')} · ${esc((d.equipment || []).join(', '))}</p>
         </div>` : ''}
       <button type="button" class="btn ${inPlan ? 'btn--muted' : 'btn--primary'} btn--block"
@@ -316,6 +319,7 @@ function renderToday() {
         const clubChips = clubOptions
           .map((c) => chip(c, plan.clubUsed[d.id] === c, { 'club-drill': d.id, club: c }))
           .join('');
+        const info = state.todayInfo[d.id];
         return `
         <li class="today-drill${plan.done[d.id] ? ' is-done' : ''}">
           <div class="today-drill-top">
@@ -324,11 +328,22 @@ function renderToday() {
               <span>${esc(d.name)}</span>
             </label>
             <span class="reorder">
+              <button type="button" class="info-btn${info ? ' is-on' : ''}" data-today-info="${esc(d.id)}" aria-label="How to do this drill">i</button>
               <button type="button" data-move-up="${esc(d.id)}" ${i === 0 ? 'disabled' : ''} aria-label="Move up">↑</button>
               <button type="button" data-move-down="${esc(d.id)}" ${i === drills.length - 1 ? 'disabled' : ''} aria-label="Move down">↓</button>
               <button type="button" data-remove="${esc(d.id)}" aria-label="Remove">✕</button>
             </span>
           </div>
+          ${info ? `
+            <div class="today-info">
+              <p>${esc(d.short || '')}</p>
+              <p><strong>How:</strong> ${esc(d.how || '')}</p>
+              <p><strong>Focus:</strong> ${esc(d.focus || '')}</p>
+              ${d.success ? `<p class="ok"><strong>Success check:</strong> ${esc(d.success)}</p>` : ''}
+              ${d.mistake ? `<p class="warn"><strong>Common mistake:</strong> ${esc(d.mistake)}</p>` : ''}
+              ${d.why ? `<p><strong>Why:</strong> ${esc(d.why)}</p>` : ''}
+              <p class="muted">${esc(d.balls || '')}${(d.equipment || []).length ? ` · ${esc((d.equipment || []).join(', '))}` : ''}</p>
+            </div>` : ''}
           ${clubOptions.length ? `<div class="club-row">${clubChips}</div>` : ''}
         </li>`;
       }).join('')
@@ -342,7 +357,7 @@ function renderToday() {
   el.innerHTML = viewHead('Today.', 'Load a plan or drills, then log your session') + `
     <article class="card">
       <div class="card-head">
-        <h3>Today’s plan</h3>
+        <h3>${esc(plan.planName || 'Today’s plan')}</h3>
         <span class="card-tag" id="today-counter">${done} / ${total}</span>
       </div>
       <div class="progress-bar"><div class="progress-fill" id="today-progress" style="width:${pct}%"></div></div>
@@ -517,6 +532,7 @@ function loadPlan(planId) {
     order: [...(plan.drills || [])],
     done: {},
     clubUsed: {},
+    planName: plan.name,
   };
   save(LS.todayPlan, state.todayPlan);
   setTab('today');
@@ -651,13 +667,17 @@ function bindEvents() {
   // Click delegation for everything rendered dynamically.
   $('#app-view').addEventListener('click', (e) => {
     const t = e.target.closest('[data-load-plan],[data-plan-toggle],[data-toggle],' +
-      '[data-move-up],[data-move-down],[data-remove],.chip,#save-session,#copy-summary,' +
-      '#clear-today,#copy-all,[data-copy-session],[data-delete-session]');
+      '[data-today-info],[data-move-up],[data-move-down],[data-remove],.chip,#save-session,' +
+      '#copy-summary,#clear-today,#copy-all,[data-copy-session],[data-delete-session]');
     if (!t) return;
 
     if (t.dataset.loadPlan) return loadPlan(t.dataset.loadPlan);
     if (t.dataset.planToggle) return togglePlanDrill(t.dataset.planToggle);
     if (t.dataset.toggle) return toggleExpanded(t.dataset.toggle);
+    if (t.dataset.todayInfo) {
+      state.todayInfo[t.dataset.todayInfo] = !state.todayInfo[t.dataset.todayInfo];
+      return renderToday();
+    }
     if (t.dataset.moveUp) return moveDrill(t.dataset.moveUp, -1);
     if (t.dataset.moveDown) return moveDrill(t.dataset.moveDown, 1);
     if (t.dataset.remove) return togglePlanDrill(t.dataset.remove);
